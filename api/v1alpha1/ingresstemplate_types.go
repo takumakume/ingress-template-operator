@@ -25,17 +25,22 @@ import (
 
 // IngressTemplateSpec defines the desired state of IngressTemplate
 type IngressTemplateSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// IngressSpec Template for Ingress.Spec
+	// +kubebuilder:validation:Required
+	IngressSpec networkingv1.IngressSpec `json:"ingressSpec"`
 
-	// Foo is an example field of IngressTemplate. Edit ingresstemplate_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// Annotations This annotation is generated in Ingress
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // IngressTemplateStatus defines the observed state of IngressTemplate
 type IngressTemplateStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// IngressName generated Ingress name
+	IngressName string `json:"ingressName,omitempty"`
+
+	// Ready Ingress generation status
+	Ready corev1.ConditionStatus `json:"ready,omitempty"`
 }
 
 //+kubebuilder:object:root=true

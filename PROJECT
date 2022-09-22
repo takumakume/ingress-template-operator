@@ -1,0 +1,6 @@
+domain: takumakume.github.io
+layout:
+- go.kubebuilder.io/v4-alpha
+projectName: ingress-template-operator
+repo: github.com/takumakume/ingress-template-operator
+version: "3"

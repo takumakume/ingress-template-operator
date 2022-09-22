@@ -1,0 +1,27 @@
+# permissions for end users to view ingresstemplates.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: ingresstemplate-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: ingress-template-operator
+    app.kubernetes.io/part-of: ingress-template-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: ingresstemplate-viewer-role
+rules:
+- apiGroups:
+  - ingress-template.takumakume.github.io
+  resources:
+  - ingresstemplates
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ingress-template.takumakume.github.io
+  resources:
+  - ingresstemplates/status
+  verbs:
+  - get

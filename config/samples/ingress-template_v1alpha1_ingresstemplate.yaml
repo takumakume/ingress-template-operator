@@ -1,0 +1,12 @@
+apiVersion: ingress-template.takumakume.github.io/v1alpha1
+kind: IngressTemplate
+metadata:
+  labels:
+    app.kubernetes.io/name: ingresstemplate
+    app.kubernetes.io/instance: ingresstemplate-sample
+    app.kubernetes.io/part-of: ingress-template-operator
+    app.kuberentes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: ingress-template-operator
+  name: ingresstemplate-sample
+spec:
+  # TODO(user): Add fields here

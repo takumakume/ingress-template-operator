@@ -18,13 +18,25 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/takumakume/ingress-template-operator/api/v1alpha1"
 	ingresstemplatev1alpha1 "github.com/takumakume/ingress-template-operator/api/v1alpha1"
+	"github.com/takumakume/ingress-template-operator/pkg/render"
+	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	managedByValue = "ingress-template-controller"
 )
 
 // IngressTemplateReconciler reconciles a IngressTemplate object
@@ -47,16 +59,78 @@ type IngressTemplateReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *IngressTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	log := log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	log.Info("Run reconcile")
+	ingresstemplate := &ingresstemplatev1alpha1.IngressTemplate{}
+	if err := r.Get(ctx, req.NamespacedName, ingresstemplate); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
 
-	return ctrl.Result{}, nil
+		log.Error(err, "unable to fetch IngressTemplate")
+		return ctrl.Result{}, err
+	}
+
+	ingress, err := ingressTemplateToIngress(ingresstemplate)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	log.Info("Run create or update Ingress")
+	op, err := ctrl.CreateOrUpdate(ctx, r.Client, ingress, func() error {
+		if ingress.Labels == nil {
+			ingress.Labels = map[string]string{}
+		}
+		ingress.Labels["app.kubernetes.io/managed-by"] = managedByValue
+		return nil
+	})
+	if err != nil {
+		log.Error(err, "unable to create or update Ingress")
+		if statusUpdateErr := r.Update(ctx, ingresstemplate); statusUpdateErr != nil {
+			return ctrl.Result{}, statusUpdateErr
+		}
+		return ctrl.Result{}, err
+	}
+	log.Info(fmt.Sprintf("Update success status:%s", op))
+
+	if op != controllerutil.OperationResultNone {
+		ingresstemplate.Status.Ready = corev1.ConditionTrue
+		if statusUpdateErr := r.Update(ctx, ingresstemplate); statusUpdateErr != nil {
+			return ctrl.Result{}, statusUpdateErr
+		}
+	}
+
+	return ctrl.Result{Requeue: true}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *IngressTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ingresstemplatev1alpha1.IngressTemplate{}).
+		Owns(&networkingv1.Ingress{}).
 		Complete(r)
+}
+
+func ingressTemplateToIngress(ingresstemplate *v1alpha1.IngressTemplate) (*networkingv1.Ingress, error) {
+	generated := &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: ingresstemplate.Name,
+			Namespace:    ingresstemplate.Namespace,
+			Annotations:  ingresstemplate.Spec.IngressAnnotations,
+			Labels:       ingresstemplate.Spec.IngressLabels,
+		},
+		Spec: ingresstemplate.Spec.IngressSpecTemplate,
+	}
+
+	opt := render.Options{
+		Namespace: ingresstemplate.Namespace,
+	}
+
+	generated, err := render.Render(generated, opt)
+	if err != nil {
+		return nil, err
+	}
+
+	return generated, nil
 }

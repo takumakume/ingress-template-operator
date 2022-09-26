@@ -20,14 +20,15 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/takumakume/ingress-template-operator/api/v1alpha1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	ingresstemplatev1alpha1 "github.com/takumakume/ingress-template-operator/api/v1alpha1"
 )
 
 func Test_ingressTemplateToIngress(t *testing.T) {
 	type args struct {
-		ingresstemplate *v1alpha1.IngressTemplate
+		ingresstemplate *ingresstemplatev1alpha1.IngressTemplate
 	}
 	tests := []struct {
 		name    string
@@ -38,12 +39,12 @@ func Test_ingressTemplateToIngress(t *testing.T) {
 		{
 			name: "default",
 			args: args{
-				ingresstemplate: &v1alpha1.IngressTemplate{
+				ingresstemplate: &ingresstemplatev1alpha1.IngressTemplate{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "ing",
 						Namespace: "ns",
 					},
-					Spec: v1alpha1.IngressTemplateSpec{
+					Spec: ingresstemplatev1alpha1.IngressTemplateSpec{
 						IngressAnnotations: map[string]string{
 							"key1": "value1-{{ .namespace }}",
 						},

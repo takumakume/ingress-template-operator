@@ -45,6 +45,9 @@ spec:
                   type: string
                 description: Labels This labels is generated in Ingress
                 type: object
+              ingressName:
+                description: IngressName This name is generated in Ingress
+                type: string
               ingressSpecTemplate:
                 description: IngressSpec Template for Ingress.Spec
                 properties:

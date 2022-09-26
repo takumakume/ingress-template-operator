@@ -31,6 +31,10 @@ type IngressTemplateSpec struct {
 	// +kubebuilder:validation:Required
 	IngressSpecTemplate networkingv1.IngressSpec `json:"ingressSpecTemplate"`
 
+	// IngressName This name is generated in Ingress
+	// +optional
+	IngressName string `json:"ingressName,omitempty"`
+
 	// Annotations This annotation is generated in Ingress
 	// +optional
 	IngressAnnotations map[string]string `json:"ingressAnnotations,omitempty"`

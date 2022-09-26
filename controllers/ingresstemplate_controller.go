@@ -26,7 +26,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/takumakume/ingress-template-operator/api/v1alpha1"
 	ingresstemplatev1alpha1 "github.com/takumakume/ingress-template-operator/api/v1alpha1"
 	"github.com/takumakume/ingress-template-operator/pkg/render"
 	corev1 "k8s.io/api/core/v1"
@@ -112,7 +111,7 @@ func (r *IngressTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func ingressTemplateToIngress(ingresstemplate *v1alpha1.IngressTemplate) (*networkingv1.Ingress, error) {
+func ingressTemplateToIngress(ingresstemplate *ingresstemplatev1alpha1.IngressTemplate) (*networkingv1.Ingress, error) {
 	generated := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: ingresstemplate.Name,

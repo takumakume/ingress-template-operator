@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -47,6 +48,7 @@ type IngressTemplateReconciler struct {
 //+kubebuilder:rbac:groups=ingress-template.takumakume.github.io,resources=ingresstemplates,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=ingress-template.takumakume.github.io,resources=ingresstemplates/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=ingress-template.takumakume.github.io,resources=ingresstemplates/finalizers,verbs=update
+//+kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -58,9 +60,8 @@ type IngressTemplateReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *IngressTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
+	log := log.FromContext(ctx).WithValues("IngressTemplate", req.NamespacedName.String())
 
-	log.Info("Run reconcile")
 	ingresstemplate := &ingresstemplatev1alpha1.IngressTemplate{}
 	if err := r.Get(ctx, req.NamespacedName, ingresstemplate); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -71,19 +72,37 @@ func (r *IngressTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
+	log.Info("Starting reconcile loop")
+	defer log.Info("Finish reconcile loop")
+
+	if !ingresstemplate.GetDeletionTimestamp().IsZero() {
+		return ctrl.Result{}, nil
+	}
+
+	log.Info("Run create or update Ingress")
 	ingress, err := ingressTemplateToIngress(ingresstemplate)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Run create or update Ingress")
+	ownerRef := metav1.NewControllerRef(
+		&ingress.ObjectMeta,
+		schema.GroupVersionKind{
+			Group:   ingresstemplatev1alpha1.GroupVersion.Group,
+			Version: ingresstemplatev1alpha1.GroupVersion.Version,
+			Kind:    "IngressTemplate",
+		})
+	ownerRef.UID = ingresstemplate.GetUID()
+	ownerRef.Name = ingresstemplate.Name
 	op, err := ctrl.CreateOrUpdate(ctx, r.Client, ingress, func() error {
+		ingress.ObjectMeta.SetOwnerReferences([]metav1.OwnerReference{*ownerRef})
 		if ingress.Labels == nil {
 			ingress.Labels = map[string]string{}
 		}
 		ingress.Labels["app.kubernetes.io/managed-by"] = managedByValue
 		return nil
 	})
+
 	if err != nil {
 		log.Error(err, "unable to create or update Ingress")
 		if statusUpdateErr := r.Update(ctx, ingresstemplate); statusUpdateErr != nil {
@@ -100,7 +119,7 @@ func (r *IngressTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -112,12 +131,16 @@ func (r *IngressTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func ingressTemplateToIngress(ingresstemplate *ingresstemplatev1alpha1.IngressTemplate) (*networkingv1.Ingress, error) {
+	ingressName := ingresstemplate.Name
+	if ingresstemplate.Spec.IngressName != "" {
+		ingressName = ingresstemplate.Spec.IngressName
+	}
 	generated := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: ingresstemplate.Name,
-			Namespace:    ingresstemplate.Namespace,
-			Annotations:  ingresstemplate.Spec.IngressAnnotations,
-			Labels:       ingresstemplate.Spec.IngressLabels,
+			Name:        ingressName,
+			Namespace:   ingresstemplate.Namespace,
+			Annotations: ingresstemplate.Spec.IngressAnnotations,
+			Labels:      ingresstemplate.Spec.IngressLabels,
 		},
 		Spec: ingresstemplate.Spec.IngressSpecTemplate,
 	}

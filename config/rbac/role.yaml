@@ -1,0 +1,33 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - ingress-template.takumakume.github.io
+  resources:
+  - ingresstemplates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ingress-template.takumakume.github.io
+  resources:
+  - ingresstemplates/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ingress-template.takumakume.github.io
+  resources:
+  - ingresstemplates/status
+  verbs:
+  - get
+  - patch
+  - update

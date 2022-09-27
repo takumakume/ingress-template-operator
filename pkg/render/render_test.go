@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -103,6 +104,28 @@ func TestRender(t *testing.T) {
 						Rules: []networkingv1.IngressRule{
 							{
 								Host: "{{ .Metadata.Namespace }}.example.com",
+								IngressRuleValue: networkingv1.IngressRuleValue{
+									HTTP: &networkingv1.HTTPIngressRuleValue{
+										Paths: []networkingv1.HTTPIngressPath{
+											{
+												Path: "/a",
+												Backend: networkingv1.IngressBackend{
+													Service: &networkingv1.IngressServiceBackend{
+														Name: "{{ .Metadata.Namespace }}-svc",
+													},
+												},
+											},
+											{
+												Path: "/b",
+												Backend: networkingv1.IngressBackend{
+													Resource: &v1.TypedLocalObjectReference{
+														Name: "{{ .Metadata.Namespace }}-backend",
+													},
+												},
+											},
+										},
+									},
+								},
 							},
 						},
 					},
@@ -135,6 +158,28 @@ func TestRender(t *testing.T) {
 					Rules: []networkingv1.IngressRule{
 						{
 							Host: "hoge.example.com",
+							IngressRuleValue: networkingv1.IngressRuleValue{
+								HTTP: &networkingv1.HTTPIngressRuleValue{
+									Paths: []networkingv1.HTTPIngressPath{
+										{
+											Path: "/a",
+											Backend: networkingv1.IngressBackend{
+												Service: &networkingv1.IngressServiceBackend{
+													Name: "hoge-svc",
+												},
+											},
+										},
+										{
+											Path: "/b",
+											Backend: networkingv1.IngressBackend{
+												Resource: &v1.TypedLocalObjectReference{
+													Name: "hoge-backend",
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},

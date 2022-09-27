@@ -38,6 +38,12 @@ func Render(ing *networkingv1.Ingress, opt Options) (*networkingv1.Ingress, erro
 	}
 
 	for i, tls := range ing.Spec.TLS {
+		secretName, err := r.render(tls.SecretName)
+		if err != nil {
+			return nil, err
+		}
+		ing.Spec.TLS[i].SecretName = secretName
+
 		for ii, host := range tls.Hosts {
 			if ret, err := r.render(host); err == nil {
 				ing.Spec.TLS[i].Hosts[ii] = ret

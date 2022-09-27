@@ -97,6 +97,7 @@ func TestRender(t *testing.T) {
 								Hosts: []string{
 									"{{ .Metadata.Namespace }}.example.com",
 								},
+								SecretName: "{{ .Metadata.Namespace }}-secret",
 							},
 						},
 						Rules: []networkingv1.IngressRule{
@@ -128,6 +129,7 @@ func TestRender(t *testing.T) {
 							Hosts: []string{
 								"hoge.example.com",
 							},
+							SecretName: "hoge-secret",
 						},
 					},
 					Rules: []networkingv1.IngressRule{

@@ -35,10 +35,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	managedByValue = "ingress-template-controller"
-)
-
 // IngressTemplateReconciler reconciles a IngressTemplate object
 type IngressTemplateReconciler struct {
 	client.Client
@@ -72,34 +68,31 @@ func (r *IngressTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Starting reconcile loop")
-	defer log.Info("Finish reconcile loop")
+	log.Info("starting reconcile loop")
+	defer log.Info("finish reconcile loop")
 
 	if !ingresstemplate.GetDeletionTimestamp().IsZero() {
 		return ctrl.Result{}, nil
 	}
 
-	log.Info("Run create or update Ingress")
+	log.Info("run create or update Ingress")
 	ingress, err := ingressTemplateToIngress(ingresstemplate)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	ownerRef := metav1.NewControllerRef(
-		&ingress.ObjectMeta,
-		schema.GroupVersionKind{
-			Group:   ingresstemplatev1alpha1.GroupVersion.Group,
-			Version: ingresstemplatev1alpha1.GroupVersion.Version,
-			Kind:    "IngressTemplate",
-		})
-	ownerRef.UID = ingresstemplate.GetUID()
-	ownerRef.Name = ingresstemplate.Name
 	op, err := ctrl.CreateOrUpdate(ctx, r.Client, ingress, func() error {
+		ownerRef := metav1.NewControllerRef(
+			&ingress.ObjectMeta,
+			schema.GroupVersionKind{
+				Group:   ingresstemplatev1alpha1.GroupVersion.Group,
+				Version: ingresstemplatev1alpha1.GroupVersion.Version,
+				Kind:    "IngressTemplate",
+			})
+		ownerRef.Name = ingresstemplate.Name
+		ownerRef.UID = ingresstemplate.GetUID()
+
 		ingress.ObjectMeta.SetOwnerReferences([]metav1.OwnerReference{*ownerRef})
-		if ingress.Labels == nil {
-			ingress.Labels = map[string]string{}
-		}
-		ingress.Labels["app.kubernetes.io/managed-by"] = managedByValue
 		return nil
 	})
 
@@ -110,14 +103,15 @@ func (r *IngressTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 		return ctrl.Result{}, err
 	}
-	log.Info(fmt.Sprintf("Update success status:%s", op))
 
 	if op != controllerutil.OperationResultNone {
 		ingresstemplate.Status.Ready = corev1.ConditionTrue
-		if statusUpdateErr := r.Update(ctx, ingresstemplate); statusUpdateErr != nil {
+		if statusUpdateErr := r.Status().Update(ctx, ingresstemplate); statusUpdateErr != nil {
 			return ctrl.Result{}, statusUpdateErr
 		}
 	}
+
+	log.Info(fmt.Sprintf("create or update successful (status:%s)", op))
 
 	return ctrl.Result{}, nil
 }
@@ -131,13 +125,9 @@ func (r *IngressTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func ingressTemplateToIngress(ingresstemplate *ingresstemplatev1alpha1.IngressTemplate) (*networkingv1.Ingress, error) {
-	ingressName := ingresstemplate.Name
-	if ingresstemplate.Spec.IngressName != "" {
-		ingressName = ingresstemplate.Spec.IngressName
-	}
 	generated := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        ingressName,
+			Name:        ingresstemplate.Name,
 			Namespace:   ingresstemplate.Namespace,
 			Annotations: ingresstemplate.Spec.IngressAnnotations,
 			Labels:      ingresstemplate.Spec.IngressLabels,

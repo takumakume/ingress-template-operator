@@ -20,12 +20,6 @@ func (opt *Options) ToMap() map[string]string {
 func Render(ing *networkingv1.Ingress, opt Options) (*networkingv1.Ingress, error) {
 	r := newRenderer(opt.ToMap())
 
-	if ret, err := r.render(ing.Name); err == nil {
-		ing.Name = ret
-	} else {
-		return nil, err
-	}
-
 	for k, v := range ing.Labels {
 		if ret, err := r.render(v); err == nil {
 			ing.Labels[k] = ret

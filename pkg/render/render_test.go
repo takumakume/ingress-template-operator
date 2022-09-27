@@ -100,7 +100,7 @@ func TestRender(t *testing.T) {
 			args: args{
 				ing: &networkingv1.Ingress{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-ingress-{{ .namespace }}",
+						Name: "test",
 						Annotations: map[string]string{
 							"annotation/key": "value-{{ .namespace }}",
 						},
@@ -129,7 +129,7 @@ func TestRender(t *testing.T) {
 			},
 			want: &networkingv1.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-ingress-hoge",
+					Name: "test",
 					Annotations: map[string]string{
 						"annotation/key": "value-hoge",
 					},

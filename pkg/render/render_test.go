@@ -8,40 +8,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestOptions_ToMap(t *testing.T) {
-	type fields struct {
-		Namespace string
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   map[string]string
-	}{
-		{
-			name: "default",
-			fields: fields{
-				Namespace: "hoge",
-			},
-			want: map[string]string{
-				"namespace": "hoge",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			opt := &Options{
-				Namespace: tt.fields.Namespace,
-			}
-			if got := opt.ToMap(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Options.ToMap() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func Test_renderer_render(t *testing.T) {
 	type fields struct {
-		data map[string]string
+		data map[string]interface{}
 	}
 	type args struct {
 		tmpl string
@@ -56,7 +25,7 @@ func Test_renderer_render(t *testing.T) {
 		{
 			name: "default",
 			fields: fields{
-				data: map[string]string{
+				data: map[string]interface{}{
 					"key1": "value1",
 					"key2": "value2",
 				},
@@ -65,6 +34,20 @@ func Test_renderer_render(t *testing.T) {
 				tmpl: "{{ .key1 }}-{{ .key2 }}",
 			},
 			want: "value1-value2",
+		},
+		{
+			name: "struct",
+			fields: fields{
+				data: map[string]interface{}{
+					"key1": metav1.ObjectMeta{
+						Namespace: "hoge",
+					},
+				},
+			},
+			args: args{
+				tmpl: "{{ .key1.Namespace }}",
+			},
+			want: "hoge",
 		},
 	}
 	for _, tt := range tests {
@@ -102,29 +85,31 @@ func TestRender(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "test",
 						Annotations: map[string]string{
-							"annotation/key": "value-{{ .namespace }}",
+							"annotation/key": "value-{{ .Metadata.Namespace }}",
 						},
 						Labels: map[string]string{
-							"key": "value-{{ .namespace }}",
+							"key": "value-{{ .Metadata.Namespace }}",
 						},
 					},
 					Spec: networkingv1.IngressSpec{
 						TLS: []networkingv1.IngressTLS{
 							{
 								Hosts: []string{
-									"{{ .namespace }}.example.com",
+									"{{ .Metadata.Namespace }}.example.com",
 								},
 							},
 						},
 						Rules: []networkingv1.IngressRule{
 							{
-								Host: "{{ .namespace }}.example.com",
+								Host: "{{ .Metadata.Namespace }}.example.com",
 							},
 						},
 					},
 				},
 				opt: Options{
-					Namespace: "hoge",
+					Metadata: metav1.ObjectMeta{
+						Namespace: "hoge",
+					},
 				},
 			},
 			want: &networkingv1.Ingress{
@@ -163,6 +148,41 @@ func TestRender(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Render() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestOptions_ToMap(t *testing.T) {
+	type fields struct {
+		Metadata metav1.ObjectMeta
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   map[string]interface{}
+	}{
+		{
+			name: "default",
+			fields: fields{
+				Metadata: metav1.ObjectMeta{
+					Namespace: "hoge",
+				},
+			},
+			want: map[string]interface{}{
+				"Metadata": metav1.ObjectMeta{
+					Namespace: "hoge",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opt := &Options{
+				Metadata: tt.fields.Metadata,
+			}
+			if got := opt.ToMap(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Options.ToMap() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -5,15 +5,16 @@ import (
 	"text/template"
 
 	networkingv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type Options struct {
-	Namespace string
+	Metadata metav1.ObjectMeta
 }
 
-func (opt *Options) ToMap() map[string]string {
-	return map[string]string{
-		"namespace": opt.Namespace,
+func (opt *Options) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"Metadata": opt.Metadata,
 	}
 }
 
@@ -58,10 +59,10 @@ func Render(ing *networkingv1.Ingress, opt Options) (*networkingv1.Ingress, erro
 }
 
 type renderer struct {
-	data map[string]string
+	data map[string]interface{}
 }
 
-func newRenderer(data map[string]string) *renderer {
+func newRenderer(data map[string]interface{}) *renderer {
 	return &renderer{
 		data: data,
 	}

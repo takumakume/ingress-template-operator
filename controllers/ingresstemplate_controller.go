@@ -136,7 +136,7 @@ func ingressTemplateToIngress(ingresstemplate *ingresstemplatev1alpha1.IngressTe
 	}
 
 	opt := render.Options{
-		Namespace: ingresstemplate.Namespace,
+		Metadata: ingresstemplate.ObjectMeta,
 	}
 
 	generated, err := render.Render(generated, opt)

@@ -52,22 +52,22 @@ func Test_ingressTemplateToIngress(t *testing.T) {
 					},
 					Spec: ingresstemplatev1alpha1.IngressTemplateSpec{
 						IngressAnnotations: map[string]string{
-							"key1": "value1-{{ .namespace }}",
+							"key1": "value1-{{ .Metadata.Namespace }}",
 						},
 						IngressLabels: map[string]string{
-							"key2": "value2-{{ .namespace }}",
+							"key2": "value2-{{ .Metadata.Namespace }}",
 						},
 						IngressSpecTemplate: networkingv1.IngressSpec{
 							TLS: []networkingv1.IngressTLS{
 								{
 									Hosts: []string{
-										"{{ .namespace }}.example.com",
+										"{{ .Metadata.Namespace }}.example.com",
 									},
 								},
 							},
 							Rules: []networkingv1.IngressRule{
 								{
-									Host: "{{ .namespace }}.example.com",
+									Host: "{{ .Metadata.Namespace }}.example.com",
 								},
 							},
 						},
@@ -133,22 +133,22 @@ var _ = Describe("IngressTemplate controller", func() {
 			},
 			Spec: ingresstemplatev1alpha1.IngressTemplateSpec{
 				IngressAnnotations: map[string]string{
-					"key1": "value1-{{ .namespace }}",
+					"key1": "value1-{{ .Metadata.Namespace }}",
 				},
 				IngressLabels: map[string]string{
-					"key2": "value2-{{ .namespace }}",
+					"key2": "value2-{{ .Metadata.Namespace }}",
 				},
 				IngressSpecTemplate: networkingv1.IngressSpec{
 					TLS: []networkingv1.IngressTLS{
 						{
 							Hosts: []string{
-								"{{ .namespace }}.example.com",
+								"{{ .Metadata.Namespace }}.example.com",
 							},
 						},
 					},
 					Rules: []networkingv1.IngressRule{
 						{
-							Host: "{{ .namespace }}.example.com",
+							Host: "{{ .Metadata.Namespace }}.example.com",
 						},
 					},
 				},

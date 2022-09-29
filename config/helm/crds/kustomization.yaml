@@ -1,0 +1,8 @@
+resources:
+  - ../../crd
+
+commonLabels:
+  app.kubernetes.io/name: ingress-template-operator
+
+transformers:
+  - label-transformer.yaml

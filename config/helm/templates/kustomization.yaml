@@ -1,6 +1,5 @@
 resources:
-  #- ../../rbac
-  - ../../manager
+  - ../../rbac
 
 namespace: '{{ .Release.Namespace }}'
 

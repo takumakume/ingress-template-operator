@@ -21,64 +21,71 @@ func (opt *Options) ToMap() map[string]interface{} {
 func Render(ing *networkingv1.Ingress, opt Options) (*networkingv1.Ingress, error) {
 	r := newRenderer(opt.ToMap())
 
-	for k, v := range ing.Labels {
-		if ret, err := r.render(v); err == nil {
-			ing.Labels[k] = ret
-		} else {
-			return nil, err
-		}
-	}
-
-	for k, v := range ing.Annotations {
-		if ret, err := r.render(v); err == nil {
-			ing.Annotations[k] = ret
-		} else {
-			return nil, err
-		}
-	}
-
-	for i, tls := range ing.Spec.TLS {
-		secretName, err := r.render(tls.SecretName)
-		if err != nil {
-			return nil, err
-		}
-		ing.Spec.TLS[i].SecretName = secretName
-
-		for ii, host := range tls.Hosts {
-			if ret, err := r.render(host); err == nil {
-				ing.Spec.TLS[i].Hosts[ii] = ret
+	if ing.Labels != nil {
+		for k, v := range ing.Labels {
+			if ret, err := r.render(v); err == nil {
+				ing.Labels[k] = ret
 			} else {
 				return nil, err
 			}
 		}
 	}
 
-	for i, rule := range ing.Spec.Rules {
-		if ret, err := r.render(rule.Host); err == nil {
-			ing.Spec.Rules[i].Host = ret
-		} else {
-			return nil, err
+	if ing.Annotations != nil {
+		for k, v := range ing.Annotations {
+			if ret, err := r.render(v); err == nil {
+				ing.Annotations[k] = ret
+			} else {
+				return nil, err
+			}
 		}
+	}
 
-		if rule.HTTP != nil && len(rule.HTTP.Paths) > 0 {
-			for ii, path := range rule.HTTP.Paths {
-				if path.Backend.Resource != nil && path.Backend.Resource.Name != "" {
-					if ret, err := r.render(path.Backend.Resource.Name); err == nil {
-						ing.Spec.Rules[i].HTTP.Paths[ii].Backend.Resource.Name = ret
-					} else {
-						return nil, err
-					}
+	if ing.Spec.TLS != nil {
+		for i, tls := range ing.Spec.TLS {
+			secretName, err := r.render(tls.SecretName)
+			if err != nil {
+				return nil, err
+			}
+			ing.Spec.TLS[i].SecretName = secretName
+
+			for ii, host := range tls.Hosts {
+				if ret, err := r.render(host); err == nil {
+					ing.Spec.TLS[i].Hosts[ii] = ret
+				} else {
+					return nil, err
 				}
-				if path.Backend.Service != nil && path.Backend.Service.Name != "" {
-					if ret, err := r.render(path.Backend.Service.Name); err == nil {
-						ing.Spec.Rules[i].HTTP.Paths[ii].Backend.Service.Name = ret
-					} else {
-						return nil, err
+			}
+		}
+	}
+
+	if ing.Spec.Rules != nil {
+		for i, rule := range ing.Spec.Rules {
+			if ret, err := r.render(rule.Host); err == nil {
+				ing.Spec.Rules[i].Host = ret
+			} else {
+				return nil, err
+			}
+
+			if rule.HTTP != nil && len(rule.HTTP.Paths) > 0 {
+				for ii, path := range rule.HTTP.Paths {
+					if path.Backend.Resource != nil && path.Backend.Resource.Name != "" {
+						if ret, err := r.render(path.Backend.Resource.Name); err == nil {
+							ing.Spec.Rules[i].HTTP.Paths[ii].Backend.Resource.Name = ret
+						} else {
+							return nil, err
+						}
+					}
+					if path.Backend.Service != nil && path.Backend.Service.Name != "" {
+						if ret, err := r.render(path.Backend.Service.Name); err == nil {
+							ing.Spec.Rules[i].HTTP.Paths[ii].Backend.Service.Name = ret
+						} else {
+							return nil, err
+						}
 					}
 				}
 			}
 		}
-
 	}
 
 	return ing, nil

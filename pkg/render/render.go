@@ -60,7 +60,7 @@ func Render(ing *networkingv1.Ingress, opt Options) (*networkingv1.Ingress, erro
 			return nil, err
 		}
 
-		if len(rule.HTTP.Paths) > 0 {
+		if rule.HTTP != nil && len(rule.HTTP.Paths) > 0 {
 			for ii, path := range rule.HTTP.Paths {
 				if path.Backend.Resource != nil && path.Backend.Resource.Name != "" {
 					if ret, err := r.render(path.Backend.Resource.Name); err == nil {

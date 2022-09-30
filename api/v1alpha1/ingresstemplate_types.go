@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,17 +27,23 @@ import (
 
 // IngressTemplateSpec defines the desired state of IngressTemplate
 type IngressTemplateSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// IngressSpec Template for Ingress.Spec
+	// +kubebuilder:validation:Required
+	IngressSpecTemplate networkingv1.IngressSpec `json:"ingressSpecTemplate"`
 
-	// Foo is an example field of IngressTemplate. Edit ingresstemplate_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// Annotations This annotation is generated in Ingress
+	// +optional
+	IngressAnnotations map[string]string `json:"ingressAnnotations,omitempty"`
+
+	// Labels This labels is generated in Ingress
+	// +optional
+	IngressLabels map[string]string `json:"ingressLabels,omitempty"`
 }
 
 // IngressTemplateStatus defines the observed state of IngressTemplate
 type IngressTemplateStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Ready Ingress generation status
+	Ready corev1.ConditionStatus `json:"ready,omitempty"`
 }
 
 //+kubebuilder:object:root=true

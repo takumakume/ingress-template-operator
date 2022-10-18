@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -177,5 +178,38 @@ var _ = Describe("IngressTemplate controller", func() {
 		Expect(created.ObjectMeta.Labels["key2"]).Should(Equal("value2-test"))
 		Expect(created.Spec.TLS[0].Hosts[0]).Should(Equal("test.example.com"))
 		Expect(created.Spec.Rules[0].Host).Should(Equal("test.example.com"))
+
+		Expect(k8sClient.Get(ctx, client.ObjectKey{Namespace: "test", Name: "sample"}, ingresstemplate))
+		ingresstemplate.Spec.IngressSpecTemplate.TLS[0].Hosts[0] = "{{ .Metadata.Namespace }}.hoge.com"
+		ingresstemplate.Spec.IngressSpecTemplate.Rules[0].Host = "{{ .Metadata.Namespace }}.hoge.com"
+		Expect(k8sClient.Update(ctx, ingresstemplate)).Should(Succeed())
+		Eventually(func() error {
+			o := &ingresstemplatev1alpha1.IngressTemplate{}
+			err := k8sClient.Get(ctx, client.ObjectKey{Namespace: "test", Name: "sample"}, o)
+			if err != nil {
+				return err
+			}
+			if o.Spec.IngressSpecTemplate.TLS[0].Hosts[0] != "{{ .Metadata.Namespace }}.hoge.com" {
+				return fmt.Errorf("IngressTemplate.Spec.IngressSpecTemplate.TLS[0].Hosts[0] has not been updated: %s", o.Spec.IngressSpecTemplate.TLS[0].Hosts[0])
+			}
+			if o.Spec.IngressSpecTemplate.Rules[0].Host != "{{ .Metadata.Namespace }}.hoge.com" {
+				return fmt.Errorf("IngressTemplate.Spec.IngressSpecTemplate.Rules[0].Host has not been updated: %s", o.Spec.IngressSpecTemplate.Rules[0].Host)
+			}
+			return nil
+		}, 20, 1).Should(Succeed())
+		Eventually(func() error {
+			o := &networkingv1.Ingress{}
+			err := k8sClient.Get(ctx, client.ObjectKey{Namespace: "test", Name: "sample"}, o)
+			if err != nil {
+				return err
+			}
+			if o.Spec.TLS[0].Hosts[0] != "test.hoge.com" {
+				return fmt.Errorf("Ingress.Spec.TLS[0].Hosts[0] has not been updated: %s", o.Spec.TLS[0].Hosts[0])
+			}
+			if o.Spec.Rules[0].Host != "test.hoge.com" {
+				return fmt.Errorf("Ingress.Spec.Rules[0].Host has not been updated: %s", o.Spec.Rules[0].Host)
+			}
+			return nil
+		}, 20, 1).Should(Succeed())
 	})
 })

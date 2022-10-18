@@ -1,0 +1,15 @@
+apiVersion: v1
+entries:
+  ingress-template-operator:
+  - apiVersion: v2
+    appVersion: 0.0.1
+    created: "2022-10-18T22:41:24.092972+09:00"
+    description: Deploy an ingress-template-controller that generates an Ingress resource
+      from a template
+    digest: 68e86319e801b45353d37c36a664ab0a1b1ce3820f57994393326ced41f3cf44
+    name: ingress-template-operator
+    type: application
+    urls:
+    - charts/ingress-template-operator-0.0.1.tgz
+    version: 0.0.1
+generated: "2022-10-18T22:41:24.092333+09:00"

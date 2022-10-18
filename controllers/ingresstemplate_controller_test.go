@@ -206,7 +206,7 @@ var _ = Describe("IngressTemplate controller", func() {
 			if o.Spec.TLS[0].Hosts[0] != "test.hoge.com" {
 				return fmt.Errorf("Ingress.Spec.TLS[0].Hosts[0] has not been updated: %s", o.Spec.TLS[0].Hosts[0])
 			}
-			if o.Spec.Rules[0].Host != "test.haoge.com" {
+			if o.Spec.Rules[0].Host != "test.hoge.com" {
 				return fmt.Errorf("Ingress.Spec.Rules[0].Host has not been updated: %s", o.Spec.Rules[0].Host)
 			}
 			return nil

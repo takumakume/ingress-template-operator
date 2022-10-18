@@ -19,12 +19,12 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	ingresstemplatev1alpha1 "github.com/takumakume/ingress-template-operator/api/v1alpha1"
@@ -76,25 +76,62 @@ func (r *IngressTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	log.Info("run create or update Ingress")
+
 	ingress, err := ingressTemplateToIngress(ingresstemplate)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	ownerRef := metav1.NewControllerRef(
+		&ingress.ObjectMeta,
+		schema.GroupVersionKind{
+			Group:   ingresstemplatev1alpha1.GroupVersion.Group,
+			Version: ingresstemplatev1alpha1.GroupVersion.Version,
+			Kind:    "IngressTemplate",
+		})
+	ownerRef.Name = ingresstemplate.Name
+	ownerRef.UID = ingresstemplate.GetUID()
+	ingress.ObjectMeta.SetOwnerReferences([]metav1.OwnerReference{*ownerRef})
 
-	op, err := ctrl.CreateOrUpdate(ctx, r.Client, ingress, func() error {
-		ownerRef := metav1.NewControllerRef(
-			&ingress.ObjectMeta,
-			schema.GroupVersionKind{
-				Group:   ingresstemplatev1alpha1.GroupVersion.Group,
-				Version: ingresstemplatev1alpha1.GroupVersion.Version,
-				Kind:    "IngressTemplate",
-			})
-		ownerRef.Name = ingresstemplate.Name
-		ownerRef.UID = ingresstemplate.GetUID()
+	createdIngress := &networkingv1.Ingress{}
+	if err := r.Get(ctx, req.NamespacedName, createdIngress); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.Info("run create Ingress")
+			if createErr := r.Create(ctx, ingress); createErr != nil {
+				return ctrl.Result{}, createErr
+			}
+			log.Info("create ingress successful")
 
-		ingress.ObjectMeta.SetOwnerReferences([]metav1.OwnerReference{*ownerRef})
-		return nil
-	})
+			ingresstemplate.Status.Ready = corev1.ConditionTrue
+			if statusUpdateErr := r.Status().Update(ctx, ingresstemplate); statusUpdateErr != nil {
+				return ctrl.Result{}, statusUpdateErr
+			}
+		}
+
+		log.Error(err, "unable to fetch Ingress")
+		return ctrl.Result{}, err
+	} else {
+		needUpdateIngress := false
+		if !reflect.DeepEqual(createdIngress.ObjectMeta.Labels, ingress.ObjectMeta.Labels) {
+			log.Info(fmt.Sprintf("detects changes ObjectMeta.Label: %+v, %+v", createdIngress.ObjectMeta.Labels, ingress.ObjectMeta.Labels))
+			needUpdateIngress = true
+		}
+		if !reflect.DeepEqual(createdIngress.ObjectMeta.Annotations, ingress.ObjectMeta.Annotations) {
+			log.Info(fmt.Sprintf("detects changes ObjectMeta.Annotations: %+v, %+v", createdIngress.ObjectMeta.Annotations, ingress.ObjectMeta.Annotations))
+			needUpdateIngress = true
+		}
+		if !reflect.DeepEqual(createdIngress.Spec, ingress.Spec) {
+			log.Info(fmt.Sprintf("detects changes Spec: %+v, %+v", createdIngress.Spec, ingress.Spec))
+			needUpdateIngress = true
+		}
+
+		if needUpdateIngress {
+			log.Info("run update Ingress")
+			if err := r.Update(ctx, ingress); err != nil {
+				return ctrl.Result{}, err
+			}
+			log.Info("update ingress successful")
+		}
+	}
 
 	if err != nil {
 		log.Error(err, "unable to create or update Ingress")
@@ -103,15 +140,6 @@ func (r *IngressTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 		return ctrl.Result{}, err
 	}
-
-	if op != controllerutil.OperationResultNone {
-		ingresstemplate.Status.Ready = corev1.ConditionTrue
-		if statusUpdateErr := r.Status().Update(ctx, ingresstemplate); statusUpdateErr != nil {
-			return ctrl.Result{}, statusUpdateErr
-		}
-	}
-
-	log.Info(fmt.Sprintf("create or update successful (status:%s)", op))
 
 	return ctrl.Result{}, nil
 }

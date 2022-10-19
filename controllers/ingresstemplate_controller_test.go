@@ -237,5 +237,31 @@ var _ = Describe("IngressTemplate controller", func() {
 			}
 			return nil
 		}, 20, 1).Should(Succeed())
+
+		Expect(k8sClient.Get(ctx, client.ObjectKey{Namespace: "test", Name: "sample"}, ingresstemplate))
+		ingresstemplate.Spec.IngressLabels["key1"] = "value1"
+		Expect(k8sClient.Update(ctx, ingresstemplate)).Should(Succeed())
+		Eventually(func() error {
+			o := &ingresstemplatev1alpha1.IngressTemplate{}
+			err := k8sClient.Get(ctx, client.ObjectKey{Namespace: "test", Name: "sample"}, o)
+			if err != nil {
+				return err
+			}
+			if o.Spec.IngressLabels["key1"] != "value1" {
+				return fmt.Errorf("IngressTemplate.Spec.IngressLabels has not been updated: %s", o.Spec.IngressLabels)
+			}
+			return nil
+		}, 20, 1).Should(Succeed())
+		Eventually(func() error {
+			o := &networkingv1.Ingress{}
+			err := k8sClient.Get(ctx, client.ObjectKey{Namespace: "test", Name: "sample"}, o)
+			if err != nil {
+				return err
+			}
+			if o.ObjectMeta.Labels["key1"] != "value1" {
+				return fmt.Errorf("Ingress.ObjectMeta.Labels has not been updated: %s", o.ObjectMeta.Labels)
+			}
+			return nil
+		}, 20, 1).Should(Succeed())
 	})
 })

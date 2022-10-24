@@ -3,7 +3,7 @@
 Generate an Ingress with a golang template.
 
 Deploy `IngressTemplate`
-  ```
+  ```yaml
   apiVersion: ingress-template.takumakume.github.io/v1alpha1
   kind: IngressTemplate
   metadata:
@@ -34,7 +34,7 @@ Deploy `IngressTemplate`
   ```
 
 Generate `Ingress`
-  ```
+  ```yaml
   apiVersion: networking.k8s.io/v1
   kind: Ingress
   metadata:

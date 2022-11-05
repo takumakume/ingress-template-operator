@@ -156,13 +156,12 @@ envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
-YQ := $(shell pwd)/bin/yq_linux_amd64
+YQ := $(LOCALBIN)/yq_linux_amd64
 .PHONY: yq
 yq: $(YQ) ## Download yq locally if necessary.
 $(YQ):
-	mkdir -p $(BIN_DIR)
 	curl -L -sS https://github.com/mikefarah/yq/releases/download/v$(YQ_VERSION)/yq_linux_amd64.tar.gz \
-	  | tar -C $(BIN_DIR) -xzf -
+	  | tar -C $(LOCALBIN) -xzf -
 
 .PHONY: helm-chart
 helm-chart:

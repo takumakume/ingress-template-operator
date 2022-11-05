@@ -43,8 +43,8 @@ manifests: controller-gen kustomize yq ## Generate WebhookConfiguration, Cluster
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	rm -rf charts/ingress-template-operator/templates/generated/
 	mkdir -p charts/ingress-template-operator/templates/generated/crds/
-	$(KUSTOMIZE) build config/helm/crds | yq e "." - > charts/ingress-template-operator/templates/generated/crds/ingress-template-operator_crds.yaml
-	$(KUSTOMIZE) build config/helm/templates | yq e "." - > charts/ingress-template-operator/templates/generated/generated.yaml
+	$(KUSTOMIZE) build config/helm/crds | $(YQ) e "." - > charts/ingress-template-operator/templates/generated/crds/ingress-template-operator_crds.yaml
+	$(KUSTOMIZE) build config/helm/templates | $(YQ) e "." - > charts/ingress-template-operator/templates/generated/generated.yaml
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -134,6 +134,8 @@ $(LOCALBIN):
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+YQ_BIN := yq_$(shell  uname | tr '[:upper:]' '[:lower:]')_$(shell uname -m)
+YQ := $(LOCALBIN)/$(YQ_BIN)
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v4.5.5
@@ -156,11 +158,10 @@ envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
-YQ := $(LOCALBIN)/yq_linux_amd64
 .PHONY: yq
 yq: $(YQ) ## Download yq locally if necessary.
 $(YQ):
-	curl -L -sS https://github.com/mikefarah/yq/releases/download/v$(YQ_VERSION)/yq_linux_amd64.tar.gz \
+	curl -L -sS https://github.com/mikefarah/yq/releases/download/v$(YQ_VERSION)/$(YQ_BIN).tar.gz \
 	  | tar -C $(LOCALBIN) -xzf -
 
 .PHONY: helm-chart

@@ -134,7 +134,11 @@ $(LOCALBIN):
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
-YQ_BIN := yq_$(shell  uname | tr '[:upper:]' '[:lower:]')_$(shell uname -m)
+ifeq ($(shell uname -m), arm64)
+	YQ_BIN := yq_$(shell uname | tr '[:upper:]' '[:lower:]')_arm64
+else
+	YQ_BIN := yq_$(shell uname | tr '[:upper:]' '[:lower:]')_amd64
+endif
 YQ := $(LOCALBIN)/$(YQ_BIN)
 
 ## Tool Versions
